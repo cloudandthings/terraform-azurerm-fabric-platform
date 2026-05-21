@@ -35,13 +35,3 @@ module "fabric_workspace" {
   enable_monitor_role_assignment = module.fabric_capacity[each.value.capacity_basename].has_monitor
   depends_on                     = [module.fabric_capacity]
 }
-
-module "fabric_lakehouse" {
-  for_each       = local.lakehouses
-  source         = "./modules/fabric_lakehouse"
-  display_name   = each.value.lakehouse.display_name
-  description    = try(each.value.lakehouse.description, "")
-  workspace_id   = module.fabric_workspace[each.value.workspace_display_name].id
-  enable_schemas = try(each.value.lakehouse.enable_schemas, false)
-  depends_on     = [module.fabric_workspace]
-}
