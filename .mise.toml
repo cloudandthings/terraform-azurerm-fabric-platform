@@ -1,12 +1,11 @@
 [settings]
 experimental = true
-disable_tools = ["uv"]
 
 [tools]
 terraform                      = "latest"
 tflint                         = "latest"
 azure-cli                      = "latest"
-"aqua:astral-sh/uv"            = "latest"
+python                         = "latest"
 "aqua:pre-commit/pre-commit"   = "latest"
 "pipx:checkov"                 = "latest"
 
