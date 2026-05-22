@@ -1,14 +1,6 @@
-variable "fabric_provider" {
-  type = object({
-    tenant_id       = string
-    subscription_id = string
-  })
-}
-
 variable "fabric_capacities" {
-  type = list(object({
+  type = map(object({
     location     = string
-    basename     = string
     sku          = string
     admin_emails = list(string)
     scheduler = optional(object({
@@ -25,8 +17,7 @@ variable "fabric_capacities" {
 }
 
 variable "domains" {
-  type = list(object({
-    display_name     = string
+  type = map(object({
     description      = optional(string, "")
     parent_domain_id = optional(string, "")
     admin_principals = list(object({
@@ -37,8 +28,7 @@ variable "domains" {
 }
 
 variable "workspaces" {
-  type = list(object({
-    display_name      = string
+  type = map(object({
     description       = optional(string, "")
     capacity_basename = string
     domain_name       = optional(string, "")

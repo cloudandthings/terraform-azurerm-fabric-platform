@@ -1,245 +1,385 @@
-# Terraform Microsoft Fabric Workspaces
+<!-- markdownlint-disable MD033 MD041 -->
+<div align="center">
 
-This Terraform project creates and manages Microsoft Fabric capacities, domains, and workspaces using both the Microsoft Fabric and Azure Resource Manager Terraform providers.
+# 🟦 Terraform Microsoft Fabric Workspaces
 
-## Prerequisites
+**A composable Terraform module for provisioning Microsoft Fabric capacities, domains, and workspaces — with built-in cost controls.**
 
-- [mise](https://mise.jdx.dev/) — manages all required tools (Terraform, tflint, Azure CLI, pre-commit, checkov)
-- Microsoft Fabric access with appropriate permissions
-- Azure subscription with permissions to create Fabric capacities
+[![Terraform Registry](https://img.shields.io/badge/Terraform_Registry-published-844FBA?logo=terraform&logoColor=white)](https://registry.terraform.io/modules/cloudandthings/fabric-workspaces/azurerm/latest)
+[![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A5_1.7.0-844FBA?logo=terraform&logoColor=white)](https://www.terraform.io/)
+[![Fabric Provider](https://img.shields.io/badge/microsoft%2Ffabric-1.10.0-0078D4?logo=microsoftazure&logoColor=white)](https://registry.terraform.io/providers/microsoft/fabric/latest)
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
 
-## Setup
+</div>
 
-After cloning the repo, run:
+---
 
-```bash
-mise run setup
+## ✨ Features
+
+- 🏗️ **Composable design** — use the full root module or pick individual sub-modules
+- 💸 **Scheduled pause/resume** — automate weekly capacity downtime to cut costs
+- 🛌 **Usage-based auto-pause** — suspend idle capacities based on Fabric job activity
+- 🌐 **Domain & workspace management** — organize Fabric resources at scale
+- 🔐 **Managed-identity workflow** — no secrets stored in Terraform state
+- ✅ **Pre-commit & CI ready** — fmt, validate, tflint, checkov out of the box
+
+## 📑 Table of Contents
+
+- [Quick Start](#-quick-start)
+- [Requirements](#-requirements)
+- [Providers](#-providers)
+- [Usage](#-usage)
+  - [Root module](#root-module-all-resources)
+  - [Sub-modules in isolation](#sub-modules-in-isolation)
+- [Modules](#-modules)
+- [Inputs](#-inputs)
+- [Outputs](#-outputs)
+- [Capacity Scheduler](#-capacity-scheduler)
+- [Usage-based Auto-pause](#-usage-based-auto-pause-autostop)
+- [Architecture](#-architecture)
+- [Notes & Caveats](#-notes--caveats)
+- [Contributing](#-contributing)
+- [License](#-license)
+
+---
+
+## 🚀 Quick Start
+
+> [!TIP]
+> This module is published to the [Terraform Registry](https://registry.terraform.io/modules/cloudandthings/fabric-workspaces/azurerm/latest). Pin to a released version in production.
+
+```hcl
+module "fabric" {
+  source  = "cloudandthings/fabric-workspaces/azurerm"
+  version = "~> 1.0"
+
+  fabric_capacities = {
+    "prod-capacity" = {
+      location     = "eastus2"
+      sku          = "F2"
+      admin_emails = ["admin@yourdomain.com"]
+    }
+  }
+
+  domains = {
+    "analytics" = {
+      description = "Analytics domain"
+      admin_principals = [{ id = "00000000-0000-0000-0000-000000000000", type = "User" }]
+    }
+  }
+
+  workspaces = {
+    "sales-bi" = {
+      capacity_basename = "prod-capacity"
+      domain_name       = "analytics"
+    }
+  }
+
+  providers = {
+    fabric  = fabric
+    azurerm = azurerm
+    azuread = azuread
+    time    = time
+  }
+}
 ```
 
-This installs all required tools at the correct versions and activates the pre-commit hooks.
+---
 
-## Pre-commit Hooks
+## 📋 Requirements
 
-This repo uses [pre-commit](https://pre-commit.com/) with [pre-commit-terraform](https://github.com/antonbabenko/pre-commit-terraform) hooks that run automatically on every `git commit`:
+| Tool | Version |
+|---|---|
+| [Terraform](https://www.terraform.io/) | `>= 1.7.0` |
+| [Azure CLI](https://learn.microsoft.com/en-us/cli/azure/) | latest (for `az login` authentication) |
+| Microsoft Fabric tenant | with appropriate admin permissions |
+| Azure subscription | with permissions to create Fabric capacities |
 
-- **terraform_fmt** — formats all `.tf` files
-- **terraform_validate** — validates all Terraform configuration
-- **terraform_tflint** — lints Terraform files with tflint
-- **terraform_checkov** — static security analysis
+## 🔌 Providers
 
-To run all hooks manually:
+Configure these providers in your own root module and pass them to this module via the `providers` argument:
 
-```bash
-pre-commit run --all-files
+| Provider | Version | Required by |
+|---|---|---|
+| [`microsoft/fabric`](https://registry.terraform.io/providers/microsoft/fabric/latest) | `1.10.0` | `fabric_domain`, `fabric_workspace` |
+| [`hashicorp/azurerm`](https://registry.terraform.io/providers/hashicorp/azurerm/latest) | `>= 3.98.0` | `fabric_capacity` |
+| [`hashicorp/azuread`](https://registry.terraform.io/providers/hashicorp/azuread/latest) | `>= 2.47.0` | `fabric_capacity` |
+| [`hashicorp/time`](https://registry.terraform.io/providers/hashicorp/time/latest) | `>= 0.9.0` | `fabric_capacity` |
+
+Authenticate with `az login` before running `terraform apply`.
+
+> [!IMPORTANT]
+> The `fabric` provider must be configured with `preview = true` to enable Fabric preview features used by this module.
+
+---
+
+## 📦 Usage
+
+### Root module (all resources)
+
+```hcl
+# provider.tf
+provider "fabric" {
+  tenant_id = "00000000-0000-0000-0000-000000000000"
+  use_cli   = true
+  preview   = true
+}
+
+provider "azurerm" {
+  features {}
+  subscription_id = "00000000-0000-0000-0000-000000000000"
+}
+
+provider "azuread" {
+  tenant_id = "00000000-0000-0000-0000-000000000000"
+}
 ```
 
-## Project Structure
+```hcl
+# main.tf
+module "fabric" {
+  source  = "cloudandthings/fabric-workspaces/azurerm"
+  version = "~> 1.0"
 
-```
-.
-├── main.tf                    # Main Terraform configuration
-├── provider.tf               # Provider configuration
-├── variables.tf              # Variable definitions
-├── terraform.tfvars.json     # Variable values (excluded from git)
-├── terraform.tfvars.json.example  # Example variable values
-├── modules/
-│   ├── fabric_capacity/      # Azure Fabric capacity module
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   ├── provider.tf
-│   │   └── scripts/
-│   │       ├── capacity_scheduler.ps1  # Runbook: scheduled pause/resume
-│   │       └── capacity_autostop.ps1   # Runbook: usage-based auto-pause
-│   ├── fabric_domain/        # Microsoft Fabric domain module
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── provider.tf
-│   └── fabric_workspace/     # Microsoft Fabric workspace module
-│       ├── main.tf
-│       ├── variables.tf
-│       ├── outputs.tf
-│       └── provider.tf
-├── creative/                 # Additional resources directory
-└── README.md
-```
+  fabric_capacities = {
+    "test001" = {
+      location     = "eastus2"
+      sku          = "F2"
+      admin_emails = ["admin@yourdomain.com"]
 
-## Configuration
+      scheduler = {
+        pause_time  = "20:00"
+        resume_time = "07:00"
+        pause_days  = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        resume_days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+      }
 
-1. Copy the example variables file:
-   ```bash
-   cp terraform.tfvars.json.example terraform.tfvars.json
-   ```
+      usage_autostop = {
+        check_interval_hours  = 1
+        idle_threshold_checks = 2
+      }
+    }
+  }
 
-2. Update [`terraform.tfvars.json`](terraform.tfvars.json) with your values:
-   ```json
-   {
-     "fabric_provider": {
-       "tenant_id": "your-tenant-id-here",
-       "subscription_id": "your-subscription-id-here"
-     },
-     "fabric_capacities": [
-       {
-         "location": "eastus2",
-         "basename": "test001",
-         "sku": "F2",
-         "admin_emails": [
-           "admin@yourdomain.com",
-           "admin2@yourdomain.com"
-         ],
-         "scheduler": {
-           "pause_time": "20:00",
-           "resume_time": "07:00",
-           "pause_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-           "resume_days": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-         },
-         "usage_autostop": {
-           "check_interval_hours": 1,
-           "idle_threshold_checks": 2
-         }
-       }
-     ],
-     "domains": [
-       {
-         "display_name": "test-domain",
-         "description": "This is a test domain",
-         "parent_domain_id": "",
-         "admin_principals": [
-           {
-             "id": "user-object-id-here",
-             "type": "User"
-           }
-         ]
-       }
-     ],
-     "workspaces": [
-       {
-         "display_name": "test-workspace",
-         "description": "This is a test workspace",
-         "capacity_basename": "test001",
-         "domain_name": "test-domain"
-       }
-     ]
-   }
-   ```
+  domains = {
+    "test-domain" = {
+      description = "This is a test domain"
+      admin_principals = [
+        { id = "user-object-id-here", type = "User" }
+      ]
+    }
+  }
 
-## Variables
+  workspaces = {
+    "test-workspace" = {
+      description       = "This is a test workspace"
+      capacity_basename = "test001"
+      domain_name       = "test-domain"
+    }
+  }
 
-The project uses the following variables defined in [`variables.tf`](variables.tf):
-
-### Provider Configuration
-- `fabric_provider.tenant_id` (string): Your Microsoft Fabric tenant ID
-- `fabric_provider.subscription_id` (string): Your Azure subscription ID
-
-### Capacity Configuration
-- `fabric_capacities` (list): List of Fabric capacities to create
-  - `location` (string): Azure region for the capacity
-  - `basename` (string): Base name for the capacity and resource group
-  - `sku` (string): Fabric capacity SKU (e.g., F2, F32, F64, F128)
-  - `admin_emails` (list): List of administrator email addresses
-  - `scheduler` (object, optional): Automated pause/resume schedule. Omit or set to `null` to disable.
-    - `pause_time` (string): Time to pause the capacity in `HH:MM` UTC format
-    - `resume_time` (string): Time to resume the capacity in `HH:MM` UTC format
-    - `pause_days` (list, optional): Days on which to pause (default: all days)
-    - `resume_days` (list, optional): Days on which to resume (default: all days)
-  - `usage_autostop` (object, optional): Usage-based auto-pause configuration. Polls workspaces for active job instances and suspends the capacity when idle. Omit or set to `null` to disable. See [Usage-based Auto-pause](#usage-based-auto-pause-autostop) for detection caveats.
-    - `check_interval_hours` (number, optional): Poll frequency in hours, 1–24 (default: `1`)
-    - `idle_threshold_checks` (number, optional): Consecutive idle polls required before suspending (default: `2`)
-
-### Domain Configuration
-- `domains` (list): List of Fabric domains to create
-  - `display_name` (string): The name of the Fabric domain
-  - `description` (string, optional): Description of the domain
-  - `parent_domain_id` (string, optional): ID of the parent domain for nested domains
-  - `admin_principals` (list): List of administrator principals
-    - `id` (string): Object ID of the user or group
-    - `type` (string): Type of principal ("User" or "Group")
-
-### Workspace Configuration
-- `workspaces` (list): List of Fabric workspaces to create
-  - `display_name` (string): The name of the Fabric workspace
-  - `description` (string, optional): Description of the workspace
-  - `capacity_basename` (string): Reference to the capacity basename
-  - `domain_name` (string, optional): Reference to the domain display name
-
-## Usage
-
-### Authenticate with Azure CLI
-```bash
-az login
+  providers = {
+    fabric  = fabric
+    azurerm = azurerm
+    azuread = azuread
+    time    = time
+  }
+}
 ```
 
-### Initialize Terraform
-```bash
-terraform init
+### Sub-modules in isolation
+
+<details>
+<summary><strong>Capacity only</strong> — no <code>fabric</code> provider required</summary>
+
+```hcl
+module "my_capacity" {
+  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_capacity"
+  version = "~> 1.0"
+
+  basename     = "my-capacity"
+  location     = "eastus2"
+  sku          = "F2"
+  admin_emails = ["admin@yourdomain.com"]
+
+  providers = {
+    azurerm = azurerm
+    azuread = azuread
+    time    = time
+  }
+}
 ```
 
-### Plan the deployment
-```bash
-terraform plan
+</details>
+
+<details>
+<summary><strong>Domain only</strong></summary>
+
+```hcl
+module "my_domain" {
+  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_domain"
+  version = "~> 1.0"
+
+  display_name = "my-domain"
+  description  = "My Fabric domain"
+  admin_principals = [
+    { id = "user-object-id-here", type = "User" }
+  ]
+
+  providers = {
+    fabric = fabric
+  }
+}
 ```
 
-### Apply the configuration
-```bash
-terraform apply
+</details>
+
+<details>
+<summary><strong>Workspace only</strong></summary>
+
+```hcl
+module "my_workspace" {
+  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_workspace"
+  version = "~> 1.0"
+
+  display_name = "my-workspace"
+  capacity_id  = "/subscriptions/.../resourceGroups/.../providers/Microsoft.Fabric/capacities/my-capacity"
+
+  providers = {
+    fabric = fabric
+  }
+}
 ```
 
-### Destroy resources
-```bash
-terraform destroy
-```
+</details>
 
-## Modules
+---
 
-### fabric_capacity
+## 🧩 Modules
 
-The [`fabric_capacity`](modules/fabric_capacity) module creates Azure Fabric capacities with the following features:
+| Module | Description | Required providers |
+|---|---|---|
+| [`fabric_capacity`](modules/fabric_capacity) | Azure Fabric capacity + optional cost-control automation | `azurerm`, `azuread`, `time` |
+| [`fabric_domain`](modules/fabric_domain) | Fabric domain with admin role assignments | `fabric` |
+| [`fabric_workspace`](modules/fabric_workspace) | Fabric workspace bound to a capacity (and optionally a domain) | `fabric` |
 
-- Creates Azure Resource Group
-- Deploys Microsoft Fabric capacity
-- Configurable SKU and location
-- Sets administration members from email addresses
-- Optional scheduled pause/resume via Azure Automation
-- Optional usage-based auto-pause based on Fabric job instance polling
+---
 
-#### Module Inputs
-- `basename` (string): Base name for resources
-- `location` (string): Azure region (default: "North Europe")
-- `sku` (string): Fabric capacity SKU (default: "F2")
-- `admin_emails` (list): List of administrator email addresses
-- `scheduler` (object, optional): Automated pause/resume schedule configuration. Set to `null` (default) to disable.
-  - `pause_time` (string): Time to pause the capacity in `HH:MM` UTC format
-  - `resume_time` (string): Time to resume the capacity in `HH:MM` UTC format
-  - `pause_days` (list, optional): Days on which to run the pause schedule (default: all days)
-  - `resume_days` (list, optional): Days on which to run the resume schedule (default: all days)
-- `usage_autostop` (object, optional): Usage-based auto-pause configuration. Set to `null` (default) to disable. See [Usage-based Auto-pause](#usage-based-auto-pause-autostop) for what is and isn't detected.
-  - `check_interval_hours` (number, optional): Poll frequency in hours, 1–24 (default: `1`)
-  - `idle_threshold_checks` (number, optional): Consecutive idle polls required before suspending (default: `2`)
+## 📥 Inputs
 
-#### Module Outputs
-- `id` (string): The Azure resource ID of the Fabric capacity
-- `automation_account_id` (string): The Azure resource ID of the Automation Account. `null` when both `scheduler` and `usage_autostop` are disabled.
-- `monitor_principal_id` (string): Principal ID of the Automation Account's managed identity. Used by the workspace module to grant Fabric workspace membership. `null` when `usage_autostop` is disabled.
+### Root module
 
-#### Capacity Scheduler
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `fabric_capacities` | `map(object)` | n/a | Map of Fabric capacities to create, keyed by capacity name. See [capacity attributes](#capacity-attributes). |
+| `domains` | `map(object)` | n/a | Map of Fabric domains, keyed by domain name. See [domain attributes](#domain-attributes). |
+| `workspaces` | `map(object)` | n/a | Map of Fabric workspaces, keyed by workspace name. See [workspace attributes](#workspace-attributes). |
 
-When `scheduler` is configured, the module provisions the following Azure resources to automate capacity cost management:
+#### Capacity attributes
 
-- **Azure Automation Account** — with a System-Assigned Managed Identity
-- **Role Assignment** — grants the Managed Identity `Contributor` access on the Fabric Capacity
-- **PowerShell 7.2 Runbook** (`capacity_scheduler.ps1`) — authenticates via Managed Identity and calls the Azure Management API to suspend or resume the capacity
-- **Two weekly schedules** — one to pause and one to resume the capacity at the configured times and days
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `location` | `string` | — | Azure region for the capacity. |
+| `sku` | `string` | — | Fabric capacity SKU (e.g. `F2`, `F32`, `F64`, `F128`). |
+| `admin_emails` | `list(string)` | — | Administrator email addresses. |
+| `scheduler` | `object` | `null` | Optional weekly pause/resume schedule. See [Capacity Scheduler](#-capacity-scheduler). |
+| `scheduler.pause_time` | `string` | — | Pause time in `HH:MM` UTC format. |
+| `scheduler.resume_time` | `string` | — | Resume time in `HH:MM` UTC format. |
+| `scheduler.pause_days` | `list(string)` | all days | Weekdays on which to pause. |
+| `scheduler.resume_days` | `list(string)` | all days | Weekdays on which to resume. |
+| `usage_autostop` | `object` | `null` | Optional usage-based auto-pause. See [Usage-based Auto-pause](#-usage-based-auto-pause-autostop). |
+| `usage_autostop.check_interval_hours` | `number` | `1` | Poll frequency (1–24 hours). |
+| `usage_autostop.idle_threshold_checks` | `number` | `2` | Consecutive idle polls before suspending. |
 
-The runbook is idempotent: it checks the current capacity state before acting and skips the API call if the capacity is already in the target state.
+#### Domain attributes
 
-#### Usage-based Auto-pause (autostop)
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `description` | `string` | `""` | Description of the domain. |
+| `parent_domain_id` | `string` | `""` | ID of the parent domain (for nested domains). |
+| `admin_principals` | `list(object)` | — | `[{ id, type }]` — Azure AD principal object IDs and type (`User` or `Group`). |
 
-When `usage_autostop` is configured, the module provisions an additional runbook (`capacity_autostop.ps1`) that polls all accessible Fabric workspaces for active job instances and suspends the capacity only after it has been consistently idle for a sustained period.
+#### Workspace attributes
 
-The Fabric Jobs API only reports **scheduled or triggered job instances**. Interactive and continuous workloads are invisible to this API and will not prevent suspension.
+| Attribute | Type | Default | Description |
+|---|---|---|---|
+| `description` | `string` | `""` | Description of the workspace. |
+| `capacity_basename` | `string` | — | Key into `fabric_capacities` that this workspace binds to. |
+| `domain_name` | `string` | `""` | Key into `domains`. Omit to skip domain assignment. |
 
-**Detected (will prevent suspension while running):**
+### Sub-module: `fabric_capacity`
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `basename` | `string` | — | Base name used for resource group, capacity, and automation resources. |
+| `location` | `string` | `"North Europe"` | Azure region. |
+| `sku` | `string` | `"F2"` | Fabric capacity SKU. |
+| `admin_emails` | `list(string)` | — | Administrator email addresses. |
+| `scheduler` | `object` | `null` | See [capacity attributes](#capacity-attributes). |
+| `usage_autostop` | `object` | `null` | See [capacity attributes](#capacity-attributes). |
+
+### Sub-module: `fabric_domain`
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `display_name` | `string` | — | Display name of the Fabric domain. |
+| `description` | `string` | `""` | Description of the domain. |
+| `parent_domain_id` | `string` | `""` | Parent domain ID for nested domains. |
+| `admin_principals` | `list(object)` | — | `[{ id, type }]` admin principals. |
+
+### Sub-module: `fabric_workspace`
+
+| Name | Type | Default | Description |
+|---|---|---|---|
+| `display_name` | `string` | — | Workspace display name. |
+| `description` | `string` | `""` | Workspace description. |
+| `capacity_id` | `string` | — | Azure resource ID of the Fabric capacity to bind to. |
+| `fabric_domain_id` | `string` | `null` | ID of the Fabric domain to assign to. |
+| `assign_to_domain` | `bool` | `false` | Whether to assign the workspace to a domain. |
+| `monitor_principal_id` | `string` | `null` | Managed identity principal ID to add as workspace `Member` (typically from `fabric_capacity.monitor_principal_id`). |
+
+---
+
+## 📤 Outputs
+
+### Sub-module: `fabric_capacity`
+
+| Name | Description |
+|---|---|
+| `id` | Azure resource ID of the Fabric capacity. |
+| `automation_account_id` | Azure resource ID of the Automation Account. `null` when both `scheduler` and `usage_autostop` are disabled. |
+| `monitor_principal_id` | Principal ID of the Automation Account's managed identity. `null` when `usage_autostop` is disabled. |
+
+### Sub-module: `fabric_domain`
+
+| Name | Description |
+|---|---|
+| `id` | ID of the Fabric domain. |
+
+---
+
+## ⏰ Capacity Scheduler
+
+When `scheduler` is configured, the `fabric_capacity` module provisions Azure resources to automate capacity cost management:
+
+- 🤖 **Azure Automation Account** with a System-Assigned Managed Identity
+- 🔑 **Role Assignment** — `Contributor` access on the Fabric Capacity
+- 📜 **PowerShell 7.2 Runbook** ([`capacity_scheduler.ps1`](modules/fabric_capacity/scripts/capacity_scheduler.ps1)) — authenticates via Managed Identity and calls the Azure Management API
+- 📅 **Two weekly schedules** — one to pause, one to resume
+
+> [!NOTE]
+> The runbook is idempotent — it checks the current capacity state before acting and skips the API call if the capacity is already in the target state.
+
+## 🛌 Usage-based Auto-pause (autostop)
+
+When `usage_autostop` is configured, the module deploys an additional runbook ([`capacity_autostop.ps1`](modules/fabric_capacity/scripts/capacity_autostop.ps1)) that polls accessible Fabric workspaces for active job instances and suspends the capacity after sustained idle time.
+
+> [!WARNING]
+> The Fabric Jobs API only reports **scheduled or triggered job instances**. Interactive and continuous workloads are invisible to this API and will **not** prevent suspension.
+
+<details>
+<summary>✅ <strong>Detected</strong> activity (will prevent suspension)</summary>
 
 | Workload | Activity |
 |---|---|
@@ -249,7 +389,10 @@ The Fabric Jobs API only reports **scheduled or triggered job instances**. Inter
 | Data Warehouse | Semantic model (dataset) refreshes |
 | Real-Time Intelligence | KQL Database commands triggered as job instances, Mirrored Database initial snapshots (where exposed as jobs) |
 
-**NOT detected (capacity may be suspended while these are in active use):**
+</details>
+
+<details>
+<summary>❌ <strong>NOT detected</strong> activity (capacity may be suspended while in use)</summary>
 
 | Workload | Activity |
 |---|---|
@@ -259,90 +402,103 @@ The Fabric Jobs API only reports **scheduled or triggered job instances**. Inter
 | Power BI / Data Science | Power BI report rendering, DirectQuery / Direct Lake reads, paginated reports; interactive ML Experiment exploration |
 | Mirrored Database | Continuous change-data replication |
 
-> For workloads dominated by interactive SQL, KQL, Power BI, or streaming usage, the `scheduler` option is safer as it pauses at predictable off-hours rather than relying on incomplete activity detection.
+</details>
 
-The managed identity must be added as a **Member** of each Fabric workspace to monitor. Workspaces managed by this Terraform project are assigned automatically; any others must be added manually via the Fabric Admin Portal.
+> [!TIP]
+> For workloads dominated by interactive SQL, KQL, Power BI, or streaming usage, the `scheduler` option is safer — it pauses at predictable off-hours rather than relying on incomplete activity detection.
 
-### fabric_domain
+The managed identity must be a **Member** of every Fabric workspace it monitors. Workspaces created by this module are added automatically; any others must be added manually via the Fabric Admin Portal.
 
-The [`fabric_domain`](modules/fabric_domain) module creates Microsoft Fabric domains with the following features:
+---
 
-- Creates Fabric domains for organization and governance
-- Supports nested domain hierarchies
-- Configurable administrator role assignments
-- Domain-based workspace management
+## 🏛️ Architecture
 
-#### Module Inputs
-- `display_name` (string): The display name of the Fabric domain
-- `description` (string): Description of the domain (optional)
-- `parent_domain_id` (string): ID of the parent domain for nested domains (optional)
-- `admin_principals` (list): List of administrator principals with id and type
+```mermaid
+flowchart TD
+    RG[Azure Resource Group] --> FC[Fabric Capacity]
+    RG --> AA[Automation Account]
+    AA -- "Managed Identity (Contributor)" --> FC
+    AA --> SR[Scheduler Runbook]
+    AA --> AR[Autostop Runbook]
+    SR -- "Pause/Resume on schedule" --> FC
+    AR -- "Suspend when idle" --> FC
 
-#### Module Outputs
-- `id` (string): The ID of the Fabric domain
-
-### fabric_workspace
-
-The [`fabric_workspace`](modules/fabric_workspace) module creates Microsoft Fabric workspaces with the following features:
-
-- Configurable display name and description
-- Links to existing Fabric capacity
-- Automatic domain assignment
-- Capacity state validation
-- Automatic addition of the capacity autostop managed identity as a workspace `Member`
-
-#### Module Inputs
-- `display_name` (string): The name of the Fabric workspace
-- `description` (string): Description of the workspace (optional)
-- `capacity_id` (string): The Azure resource ID of the Fabric capacity
-- `fabric_domain_id` (string, optional): The ID of the Fabric domain
-- `assign_to_domain` (bool, optional): Whether to assign the workspace to a Fabric domain (default: `false`)
-- `monitor_principal_id` (string, optional): Principal ID of the capacity autostop managed identity to add as a workspace `Member`. Pass through from `module.fabric_capacity.monitor_principal_id`. Set to `null` to skip.
-
-## Provider Configuration
-
-This project uses multiple Terraform providers:
-
-### Microsoft Fabric Provider
-- Version: 1.10.0
-- Authentication: Azure CLI (`use_cli = true`)
-- Preview features enabled
-
-### Azure Resource Manager Provider
-- Version: >= 3.98.0
-- Authentication: Azure CLI
-- Used for creating Fabric capacities and resource groups
-
-### Azure Active Directory Provider
-- Version: >= 2.47.0
-- Used for looking up user principals for capacity administration
-
-## Dependencies
-
-The project establishes the following dependencies:
-- Domains are created first and independently
-- Workspaces depend on both capacities and domains being created
-- Capacity administrators are validated against Azure AD
-- Domain workspace assignments are created after workspace creation
-
-## Architecture
+    FD[Fabric Domain] --> FW[Fabric Workspace]
+    FC -- "capacity_id" --> FW
+    AA -- "Workspace Member" --> FW
+```
 
 The solution creates a hierarchical structure:
-1. **Azure Resource Groups** - Container for Azure resources
-2. **Fabric Capacities** - Compute resources for Fabric workloads
-3. **Fabric Domains** - Organizational units for governance
-4. **Fabric Workspaces** - Development environments linked to capacities and domains
 
-## License
+1. **Azure Resource Groups** — container for Azure resources
+2. **Fabric Capacities** — compute resources for Fabric workloads
+3. **Fabric Domains** — organizational units for governance
+4. **Fabric Workspaces** — development environments bound to capacities and domains
 
-The Microsoft Fabric Terraform provider is licensed under the Mozilla Public License 2.0.
+**Dependency order:** domains and capacities are created independently; workspaces depend on both.
 
-## Notes
+---
 
-- The [`terraform.tfvars.json`](terraform.tfvars.json) file contains sensitive information and is excluded from version control
-- State files ([`terraform.tfstate`](terraform.tfstate)) are also excluded from git
-- The Fabric provider is configured with `preview = true` to enable preview features
-- Ensure admin emails and principal IDs exist as valid users/groups in your Azure AD tenant
-- Fabric capacities require specific Azure regions that support Microsoft Fabric
-- Domain assignments automatically link workspaces to their specified domains
-- The workspace module extracts capacity names from Azure resource IDs for Fabric provider compatibility
+## 📝 Notes & Caveats
+
+- 🔐 The `fabric` provider should be configured with `preview = true` to enable preview features
+- 👥 Admin emails and principal IDs must exist as valid users/groups in your Azure AD tenant
+- 🌍 Fabric capacities are only available in [specific Azure regions](https://learn.microsoft.com/en-us/fabric/admin/region-availability)
+- 🏷️ The `fabric_workspace` module extracts capacity names from Azure resource IDs for Fabric provider compatibility
+
+---
+
+## 🤝 Contributing
+
+> This section applies to **contributors only**. End users do not need to clone the repo.
+
+### Prerequisites
+
+- [mise](https://mise.jdx.dev/) — manages all required tools (Terraform, tflint, Azure CLI, pre-commit, checkov)
+
+### Setup
+
+```bash
+mise run setup
+```
+
+This installs all required tools at the correct versions and activates the pre-commit hooks.
+
+### Pre-commit Hooks
+
+Hooks run automatically on every `git commit` via [pre-commit-terraform](https://github.com/antonbabenko/pre-commit-terraform):
+
+| Hook | Purpose |
+|---|---|
+| `terraform_fmt` | Formats all `.tf` files |
+| `terraform_validate` | Validates Terraform configuration |
+| `terraform_tflint` | Lints with tflint |
+| `terraform_checkov` | Static security analysis |
+
+Run all hooks manually:
+
+```bash
+pre-commit run --all-files
+```
+
+### Project Structure
+
+```
+.
+├── main.tf                     # Root module: wires fabric_capacity, fabric_domain, fabric_workspace
+├── variables.tf                # Root module variable definitions
+├── locals.tf                   # Root module locals (domain ID lookup)
+├── provider.tf                 # required_providers declaration
+├── modules/
+│   ├── fabric_capacity/        # Azure Fabric capacity module
+│   │   └── scripts/            # PowerShell runbooks for scheduler & autostop
+│   ├── fabric_domain/          # Microsoft Fabric domain module
+│   └── fabric_workspace/       # Microsoft Fabric workspace module
+└── README.md
+```
+
+---
+
+## 📄 License
+
+Licensed under the [Apache License 2.0](LICENSE). See the [LICENSE](LICENSE) file for details.
