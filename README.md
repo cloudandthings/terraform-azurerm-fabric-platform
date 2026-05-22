@@ -52,7 +52,7 @@
 ```hcl
 module "fabric" {
   source  = "cloudandthings/fabric-platform/azurerm"
-  version = "~> 1.0"
+  version = "~> 0.1"
 
   fabric_capacities = {
     "prod-capacity" = {
