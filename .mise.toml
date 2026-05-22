@@ -1,0 +1,17 @@
+[settings]
+experimental = true
+
+[tools]
+terraform                      = "latest"
+tflint                         = "latest"
+azure-cli                      = "latest"
+python                         = "latest"
+"aqua:pre-commit/pre-commit"   = "latest"
+"pipx:checkov"                 = "latest"
+
+[tasks.setup]
+description = "Install all tools and activate pre-commit hooks"
+run = """
+mise install
+pre-commit install
+"""

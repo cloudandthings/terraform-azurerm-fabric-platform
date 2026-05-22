@@ -1,0 +1,46 @@
+name: pre-commit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  pre-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: terraform-linters/setup-tflint@v4
+
+      - name: terraform init
+        run: |
+          terraform init -backend=false
+          for dir in modules/*/; do
+            terraform -chdir="$dir" init -backend=false
+          done
+
+      - name: terraform test
+        run: |
+          for dir in modules/*/; do
+            terraform -chdir="$dir" test
+          done
+
+      - name: install checkov
+        run: pip install checkov
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pre-commit
+          key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
+
+      - uses: pre-commit/action@v3.0.1

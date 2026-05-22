@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/antonbabenko/pre-commit-terraform
+    rev: v1.105.0
+    hooks:
+      - id: terraform_fmt
+      - id: terraform_validate
+      - id: terraform_tflint
+      - id: terraform_checkov
+        args:
+          - --args=--quiet
+
+  - repo: local
+    hooks:
+      - id: terraform_test
+        name: Terraform test
+        language: system
+        entry: bash -c 'for dir in modules/*/; do echo "--- $dir ---"; terraform -chdir="$dir" test || exit 1; done'
+        pass_filenames: false
+        files: \.(tf|tftest\.hcl)$
