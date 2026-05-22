@@ -1,11 +1,11 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <div align="center">
 
-# 🟦 Terraform Microsoft Fabric Workspaces
+# 🟦 Terraform Azure Fabric Platform
 
 **A composable Terraform module for provisioning Microsoft Fabric capacities, domains, and workspaces — with built-in cost controls.**
 
-[![Terraform Registry](https://img.shields.io/badge/Terraform_Registry-published-844FBA?logo=terraform&logoColor=white)](https://registry.terraform.io/modules/cloudandthings/fabric-workspaces/azurerm/latest)
+[![Terraform Registry](https://img.shields.io/badge/Terraform_Registry-published-844FBA?logo=terraform&logoColor=white)](https://registry.terraform.io/modules/cloudandthings/fabric-platform/azurerm/latest)
 [![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A5_1.7.0-844FBA?logo=terraform&logoColor=white)](https://www.terraform.io/)
 [![Fabric Provider](https://img.shields.io/badge/microsoft%2Ffabric-1.10.0-0078D4?logo=microsoftazure&logoColor=white)](https://registry.terraform.io/providers/microsoft/fabric/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -47,11 +47,11 @@
 ## 🚀 Quick Start
 
 > [!TIP]
-> This module is published to the [Terraform Registry](https://registry.terraform.io/modules/cloudandthings/fabric-workspaces/azurerm/latest). Pin to a released version in production.
+> This module is published to the [Terraform Registry](https://registry.terraform.io/modules/cloudandthings/fabric-platform/azurerm/latest). Pin to a released version in production.
 
 ```hcl
 module "fabric" {
-  source  = "cloudandthings/fabric-workspaces/azurerm"
+  source  = "cloudandthings/fabric-platform/azurerm"
   version = "~> 1.0"
 
   fabric_capacities = {
@@ -139,7 +139,7 @@ provider "azuread" {
 ```hcl
 # main.tf
 module "fabric" {
-  source  = "cloudandthings/fabric-workspaces/azurerm"
+  source  = "cloudandthings/fabric-platform/azurerm"
   version = "~> 1.0"
 
   fabric_capacities = {
@@ -195,7 +195,7 @@ module "fabric" {
 
 ```hcl
 module "my_capacity" {
-  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_capacity"
+  source  = "cloudandthings/fabric-platform/azurerm//modules/fabric_capacity"
   version = "~> 1.0"
 
   basename     = "my-capacity"
@@ -218,7 +218,7 @@ module "my_capacity" {
 
 ```hcl
 module "my_domain" {
-  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_domain"
+  source  = "cloudandthings/fabric-platform/azurerm//modules/fabric_domain"
   version = "~> 1.0"
 
   display_name = "my-domain"
@@ -240,7 +240,7 @@ module "my_domain" {
 
 ```hcl
 module "my_workspace" {
-  source  = "cloudandthings/fabric-workspaces/azurerm//modules/fabric_workspace"
+  source  = "cloudandthings/fabric-platform/azurerm//modules/fabric_workspace"
   version = "~> 1.0"
 
   display_name = "my-workspace"
