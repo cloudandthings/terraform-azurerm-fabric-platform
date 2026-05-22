@@ -1,7 +1,11 @@
 <!-- markdownlint-disable MD033 MD041 -->
 <div align="center">
 
+<<<<<<< Updated upstream
 # 🟦 Terraform Microsoft Fabric Workspaces
+=======
+# <img src="docs/images/fabric-icon.png" alt="Microsoft Fabric" height="25"> Terraform Azure Fabric Platform
+>>>>>>> Stashed changes
 
 **A composable Terraform module for provisioning Microsoft Fabric capacities, domains, and workspaces — with built-in cost controls.**
 
