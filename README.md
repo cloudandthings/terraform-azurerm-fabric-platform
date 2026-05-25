@@ -1,7 +1,4 @@
-<!-- markdownlint-disable MD033 MD041 -->
-<div align="center">
-
-# <img src="docs/images/fabric-icon.png" alt="Microsoft Fabric" height="25"> Terraform Azure Fabric Platform
+# Terraform Azure Fabric Platform
 
 **A composable Terraform module for provisioning Microsoft Fabric capacities, domains, and workspaces — with built-in cost controls.**
 
@@ -10,8 +7,6 @@
 [![Fabric Provider](https://img.shields.io/badge/microsoft%2Ffabric-1.10.0-0078D4?logo=microsoftazure&logoColor=white)](https://registry.terraform.io/providers/microsoft/fabric/latest)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://pre-commit.com/)
-
-</div>
 
 ---
 
@@ -46,8 +41,7 @@
 
 ## 🚀 Quick Start
 
-> [!TIP]
-> This module is published to the [Terraform Registry](https://registry.terraform.io/modules/cloudandthings/fabric-platform/azurerm/latest). Pin to a released version in production.
+> **Tip:** This module is published to the [Terraform Registry](https://registry.terraform.io/modules/cloudandthings/fabric-platform/azurerm/latest). Pin to a released version in production.
 
 ```hcl
 module "fabric" {
@@ -109,8 +103,7 @@ Configure these providers in your own root module and pass them to this module v
 
 Authenticate with `az login` before running `terraform apply`.
 
-> [!IMPORTANT]
-> The `fabric` provider must be configured with `preview = true` to enable Fabric preview features used by this module.
+> **Important:** The `fabric` provider must be configured with `preview = true` to enable Fabric preview features used by this module.
 
 ---
 
@@ -190,8 +183,7 @@ module "fabric" {
 
 ### Sub-modules in isolation
 
-<details>
-<summary><strong>Capacity only</strong> — no <code>fabric</code> provider required</summary>
+**Capacity only** — no `fabric` provider required
 
 ```hcl
 module "my_capacity" {
@@ -211,10 +203,7 @@ module "my_capacity" {
 }
 ```
 
-</details>
-
-<details>
-<summary><strong>Domain only</strong></summary>
+**Domain only**
 
 ```hcl
 module "my_domain" {
@@ -233,10 +222,7 @@ module "my_domain" {
 }
 ```
 
-</details>
-
-<details>
-<summary><strong>Workspace only</strong></summary>
+**Workspace only**
 
 ```hcl
 module "my_workspace" {
@@ -251,8 +237,6 @@ module "my_workspace" {
   }
 }
 ```
-
-</details>
 
 ---
 
@@ -270,74 +254,74 @@ module "my_workspace" {
 
 ### Root module
 
-| Name | Type | Default | Description |
-|---|---|---|---|
-| `fabric_capacities` | `map(object)` | n/a | Map of Fabric capacities to create, keyed by capacity name. See [capacity attributes](#capacity-attributes). |
-| `domains` | `map(object)` | n/a | Map of Fabric domains, keyed by domain name. See [domain attributes](#domain-attributes). |
-| `workspaces` | `map(object)` | n/a | Map of Fabric workspaces, keyed by workspace name. See [workspace attributes](#workspace-attributes). |
+| Name | Description | Type | Required |
+|---|---|---|:---:|
+| `fabric_capacities` | Map of Fabric capacities to create, keyed by capacity name. See [capacity attributes](#capacity-attributes). | `map(object)` | yes |
+| `domains` | Map of Fabric domains, keyed by domain name. See [domain attributes](#domain-attributes). | `map(object)` | yes |
+| `workspaces` | Map of Fabric workspaces, keyed by workspace name. See [workspace attributes](#workspace-attributes). | `map(object)` | yes |
 
 #### Capacity attributes
 
-| Attribute | Type | Default | Description |
+| Attribute | Description | Type | Default |
 |---|---|---|---|
-| `location` | `string` | — | Azure region for the capacity. |
-| `sku` | `string` | — | Fabric capacity SKU (e.g. `F2`, `F32`, `F64`, `F128`). |
-| `admin_emails` | `list(string)` | — | Administrator email addresses. |
-| `scheduler` | `object` | `null` | Optional weekly pause/resume schedule. See [Capacity Scheduler](#-capacity-scheduler). |
-| `scheduler.pause_time` | `string` | — | Pause time in `HH:MM` UTC format. |
-| `scheduler.resume_time` | `string` | — | Resume time in `HH:MM` UTC format. |
-| `scheduler.pause_days` | `list(string)` | all days | Weekdays on which to pause. |
-| `scheduler.resume_days` | `list(string)` | all days | Weekdays on which to resume. |
-| `usage_autostop` | `object` | `null` | Optional usage-based auto-pause. See [Usage-based Auto-pause](#-usage-based-auto-pause-autostop). |
-| `usage_autostop.check_interval_hours` | `number` | `1` | Poll frequency (1–24 hours). |
-| `usage_autostop.idle_threshold_checks` | `number` | `2` | Consecutive idle polls before suspending. |
+| `location` | Azure region for the capacity. | `string` | — |
+| `sku` | Fabric capacity SKU (e.g. `F2`, `F32`, `F64`, `F128`). | `string` | — |
+| `admin_emails` | Administrator email addresses. | `list(string)` | — |
+| `scheduler` | Optional weekly pause/resume schedule. See [Capacity Scheduler](#-capacity-scheduler). | `object` | `null` |
+| `scheduler.pause_time` | Pause time in `HH:MM` UTC format. | `string` | — |
+| `scheduler.resume_time` | Resume time in `HH:MM` UTC format. | `string` | — |
+| `scheduler.pause_days` | Weekdays on which to pause. | `list(string)` | all days |
+| `scheduler.resume_days` | Weekdays on which to resume. | `list(string)` | all days |
+| `usage_autostop` | Optional usage-based auto-pause. See [Usage-based Auto-pause](#-usage-based-auto-pause-autostop). | `object` | `null` |
+| `usage_autostop.check_interval_hours` | Poll frequency (1–24 hours). | `number` | `1` |
+| `usage_autostop.idle_threshold_checks` | Consecutive idle polls before suspending. | `number` | `2` |
 
 #### Domain attributes
 
-| Attribute | Type | Default | Description |
+| Attribute | Description | Type | Default |
 |---|---|---|---|
-| `description` | `string` | `""` | Description of the domain. |
-| `parent_domain_id` | `string` | `""` | ID of the parent domain (for nested domains). |
-| `admin_principals` | `list(object)` | — | `[{ id, type }]` — Azure AD principal object IDs and type (`User` or `Group`). |
+| `description` | Description of the domain. | `string` | `""` |
+| `parent_domain_id` | ID of the parent domain (for nested domains). | `string` | `""` |
+| `admin_principals` | `[{ id, type }]` — Azure AD principal object IDs and type (`User` or `Group`). | `list(object)` | — |
 
 #### Workspace attributes
 
-| Attribute | Type | Default | Description |
+| Attribute | Description | Type | Default |
 |---|---|---|---|
-| `description` | `string` | `""` | Description of the workspace. |
-| `capacity_basename` | `string` | — | Key into `fabric_capacities` that this workspace binds to. |
-| `domain_name` | `string` | `""` | Key into `domains`. Omit to skip domain assignment. |
+| `description` | Description of the workspace. | `string` | `""` |
+| `capacity_basename` | Key into `fabric_capacities` that this workspace binds to. | `string` | — |
+| `domain_name` | Key into `domains`. Omit to skip domain assignment. | `string` | `""` |
 
 ### Sub-module: `fabric_capacity`
 
-| Name | Type | Default | Description |
+| Name | Description | Type | Default |
 |---|---|---|---|
-| `basename` | `string` | — | Base name used for resource group, capacity, and automation resources. |
-| `location` | `string` | `"North Europe"` | Azure region. |
-| `sku` | `string` | `"F2"` | Fabric capacity SKU. |
-| `admin_emails` | `list(string)` | — | Administrator email addresses. |
-| `scheduler` | `object` | `null` | See [capacity attributes](#capacity-attributes). |
-| `usage_autostop` | `object` | `null` | See [capacity attributes](#capacity-attributes). |
+| `basename` | Base name used for resource group, capacity, and automation resources. | `string` | — |
+| `location` | Azure region. | `string` | `"North Europe"` |
+| `sku` | Fabric capacity SKU. | `string` | `"F2"` |
+| `admin_emails` | Administrator email addresses. | `list(string)` | — |
+| `scheduler` | See [capacity attributes](#capacity-attributes). | `object` | `null` |
+| `usage_autostop` | See [capacity attributes](#capacity-attributes). | `object` | `null` |
 
 ### Sub-module: `fabric_domain`
 
-| Name | Type | Default | Description |
+| Name | Description | Type | Default |
 |---|---|---|---|
-| `display_name` | `string` | — | Display name of the Fabric domain. |
-| `description` | `string` | `""` | Description of the domain. |
-| `parent_domain_id` | `string` | `""` | Parent domain ID for nested domains. |
-| `admin_principals` | `list(object)` | — | `[{ id, type }]` admin principals. |
+| `display_name` | Display name of the Fabric domain. | `string` | — |
+| `description` | Description of the domain. | `string` | `""` |
+| `parent_domain_id` | Parent domain ID for nested domains. | `string` | `""` |
+| `admin_principals` | `[{ id, type }]` admin principals. | `list(object)` | — |
 
 ### Sub-module: `fabric_workspace`
 
-| Name | Type | Default | Description |
+| Name | Description | Type | Default |
 |---|---|---|---|
-| `display_name` | `string` | — | Workspace display name. |
-| `description` | `string` | `""` | Workspace description. |
-| `capacity_id` | `string` | — | Azure resource ID of the Fabric capacity to bind to. |
-| `fabric_domain_id` | `string` | `null` | ID of the Fabric domain to assign to. |
-| `assign_to_domain` | `bool` | `false` | Whether to assign the workspace to a domain. |
-| `monitor_principal_id` | `string` | `null` | Managed identity principal ID to add as workspace `Member` (typically from `fabric_capacity.monitor_principal_id`). |
+| `display_name` | Workspace display name. | `string` | — |
+| `description` | Workspace description. | `string` | `""` |
+| `capacity_id` | Azure resource ID of the Fabric capacity to bind to. | `string` | — |
+| `fabric_domain_id` | ID of the Fabric domain to assign to. | `string` | `null` |
+| `assign_to_domain` | Whether to assign the workspace to a domain. | `bool` | `false` |
+| `monitor_principal_id` | Managed identity principal ID to add as workspace `Member` (typically from `fabric_capacity.monitor_principal_id`). | `string` | `null` |
 
 ---
 
@@ -368,18 +352,15 @@ When `scheduler` is configured, the `fabric_capacity` module provisions Azure re
 - 📜 **PowerShell 7.2 Runbook** ([`capacity_scheduler.ps1`](modules/fabric_capacity/scripts/capacity_scheduler.ps1)) — authenticates via Managed Identity and calls the Azure Management API
 - 📅 **Two weekly schedules** — one to pause, one to resume
 
-> [!NOTE]
-> The runbook is idempotent — it checks the current capacity state before acting and skips the API call if the capacity is already in the target state.
+> **Note:** The runbook is idempotent — it checks the current capacity state before acting and skips the API call if the capacity is already in the target state.
 
 ## 🛌 Usage-based Auto-pause (autostop)
 
 When `usage_autostop` is configured, the module deploys an additional runbook ([`capacity_autostop.ps1`](modules/fabric_capacity/scripts/capacity_autostop.ps1)) that polls accessible Fabric workspaces for active job instances and suspends the capacity after sustained idle time.
 
-> [!WARNING]
-> The Fabric Jobs API only reports **scheduled or triggered job instances**. Interactive and continuous workloads are invisible to this API and will **not** prevent suspension.
+> **Warning:** The Fabric Jobs API only reports **scheduled or triggered job instances**. Interactive and continuous workloads are invisible to this API and will **not** prevent suspension.
 
-<details>
-<summary>✅ <strong>Detected</strong> activity (will prevent suspension)</summary>
+**Detected activity** (will prevent suspension)
 
 | Workload | Activity |
 |---|---|
@@ -389,10 +370,7 @@ When `usage_autostop` is configured, the module deploys an additional runbook ([
 | Data Warehouse | Semantic model (dataset) refreshes |
 | Real-Time Intelligence | KQL Database commands triggered as job instances, Mirrored Database initial snapshots (where exposed as jobs) |
 
-</details>
-
-<details>
-<summary>❌ <strong>NOT detected</strong> activity (capacity may be suspended while in use)</summary>
+**NOT detected activity** (capacity may be suspended while in use)
 
 | Workload | Activity |
 |---|---|
@@ -402,10 +380,7 @@ When `usage_autostop` is configured, the module deploys an additional runbook ([
 | Power BI / Data Science | Power BI report rendering, DirectQuery / Direct Lake reads, paginated reports; interactive ML Experiment exploration |
 | Mirrored Database | Continuous change-data replication |
 
-</details>
-
-> [!TIP]
-> For workloads dominated by interactive SQL, KQL, Power BI, or streaming usage, the `scheduler` option is safer — it pauses at predictable off-hours rather than relying on incomplete activity detection.
+> **Tip:** For workloads dominated by interactive SQL, KQL, Power BI, or streaming usage, the `scheduler` option is safer — it pauses at predictable off-hours rather than relying on incomplete activity detection.
 
 The managed identity must be a **Member** of every Fabric workspace it monitors. Workspaces created by this module are added automatically; any others must be added manually via the Fabric Admin Portal.
 
@@ -413,19 +388,17 @@ The managed identity must be a **Member** of every Fabric workspace it monitors.
 
 ## 🏛️ Architecture
 
-```mermaid
-flowchart TD
-    RG[Azure Resource Group] --> FC[Fabric Capacity]
-    RG --> AA[Automation Account]
-    AA -- "Managed Identity (Contributor)" --> FC
-    AA --> SR[Scheduler Runbook]
-    AA --> AR[Autostop Runbook]
-    SR -- "Pause/Resume on schedule" --> FC
-    AR -- "Suspend when idle" --> FC
+```
+Azure Resource Group
+├── Fabric Capacity
+└── Automation Account
+    ├── Managed Identity ──(Contributor)──► Fabric Capacity
+    ├── Scheduler Runbook ──(Pause/Resume on schedule)──► Fabric Capacity
+    └── Autostop Runbook  ──(Suspend when idle)──► Fabric Capacity
 
-    FD[Fabric Domain] --> FW[Fabric Workspace]
-    FC -- "capacity_id" --> FW
-    AA -- "Workspace Member" --> FW
+Fabric Domain
+└── Fabric Workspace ◄──(capacity_id)── Fabric Capacity
+                     ◄──(Workspace Member)── Automation Account
 ```
 
 The solution creates a hierarchical structure:

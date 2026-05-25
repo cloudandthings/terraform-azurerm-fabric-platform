@@ -1,4 +1,5 @@
 variable "fabric_capacities" {
+  description = "Map of Fabric capacities to create, keyed by capacity base name. Each entry provisions an Azure Resource Group, a Fabric Capacity, and optionally an Automation Account with scheduler and/or usage-based auto-pause runbooks."
   type = map(object({
     location     = string
     sku          = string
@@ -17,6 +18,7 @@ variable "fabric_capacities" {
 }
 
 variable "domains" {
+  description = "Map of Fabric domains to create, keyed by domain name. Each entry provisions a Fabric domain and assigns the specified admin principals."
   type = map(object({
     description      = optional(string, "")
     parent_domain_id = optional(string, "")
@@ -28,6 +30,7 @@ variable "domains" {
 }
 
 variable "workspaces" {
+  description = "Map of Fabric workspaces to create, keyed by workspace name. Each entry provisions a Fabric workspace and binds it to a capacity and optionally a domain."
   type = map(object({
     description       = optional(string, "")
     capacity_basename = string
