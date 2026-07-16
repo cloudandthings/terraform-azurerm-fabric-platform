@@ -23,11 +23,11 @@ variable "admin_emails" {
 }
 
 variable "scheduler" {
-  description = "Optional schedule for automated pause/resume of the Fabric Capacity. Set to null to disable."
+  description = "Optional schedule for automated pause (and, optionally, resume) of the Fabric Capacity. Set to null to disable. Omit resume_time to only ever pause the capacity automatically, leaving it to be resumed manually."
   default     = null
   type = object({
-    pause_time  = string # "HH:MM" UTC
-    resume_time = string # "HH:MM" UTC
+    pause_time  = string           # "HH:MM" UTC
+    resume_time = optional(string) # "HH:MM" UTC; omit to disable the resume schedule
     pause_days  = optional(list(string), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
     resume_days = optional(list(string), ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"])
   })
@@ -41,11 +41,11 @@ variable "scheduler" {
   }
 
   validation {
-    condition = var.scheduler == null || can(regex(
+    condition = var.scheduler == null || var.scheduler.resume_time == null || can(regex(
       "^([01][0-9]|2[0-3]):[0-5][0-9]$",
       var.scheduler.resume_time
     ))
-    error_message = "scheduler.resume_time must be in HH:MM (24h UTC) format, e.g. \"07:00\"."
+    error_message = "scheduler.resume_time must be in HH:MM (24h UTC) format, e.g. \"07:00\", or omitted to disable the resume schedule."
   }
 
   validation {
@@ -61,7 +61,7 @@ variable "scheduler" {
   }
 
   validation {
-    condition = var.scheduler == null || try(
+    condition = var.scheduler == null || var.scheduler.resume_time == null || try(
       length(var.scheduler.resume_days) > 0 && alltrue([
         for d in var.scheduler.resume_days : contains(
           ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], d

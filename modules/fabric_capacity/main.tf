@@ -77,7 +77,7 @@ resource "time_static" "pause_schedule" {
 }
 
 resource "time_static" "resume_schedule" {
-  count = var.scheduler != null ? 1 : 0
+  count = (var.scheduler != null && var.scheduler.resume_time != null) ? 1 : 0
   triggers = {
     basename    = var.basename
     resume_time = var.scheduler.resume_time
@@ -113,7 +113,7 @@ resource "azurerm_automation_job_schedule" "pause_schedule" {
 }
 
 resource "azurerm_automation_schedule" "resume_schedule" {
-  count                   = var.scheduler != null ? 1 : 0
+  count                   = (var.scheduler != null && var.scheduler.resume_time != null) ? 1 : 0
   name                    = "${var.basename}-scheduled-resume"
   resource_group_name     = azurerm_resource_group.this.name
   automation_account_name = azurerm_automation_account.this[0].name
@@ -125,7 +125,7 @@ resource "azurerm_automation_schedule" "resume_schedule" {
 }
 
 resource "azurerm_automation_job_schedule" "resume_schedule" {
-  count                   = var.scheduler != null ? 1 : 0
+  count                   = (var.scheduler != null && var.scheduler.resume_time != null) ? 1 : 0
   resource_group_name     = azurerm_resource_group.this.name
   automation_account_name = azurerm_automation_account.this[0].name
   schedule_name           = azurerm_automation_schedule.resume_schedule[0].name
