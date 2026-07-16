@@ -269,9 +269,9 @@ module "my_workspace" {
 | `admin_emails` | Administrator email addresses. | `list(string)` | — |
 | `scheduler` | Optional weekly pause/resume schedule. See [Capacity Scheduler](#-capacity-scheduler). | `object` | `null` |
 | `scheduler.pause_time` | Pause time in `HH:MM` UTC format. | `string` | — |
-| `scheduler.resume_time` | Resume time in `HH:MM` UTC format. | `string` | — |
+| `scheduler.resume_time` | Resume time in `HH:MM` UTC format. Omit to disable the resume schedule and only ever pause automatically. | `string` | `null` |
 | `scheduler.pause_days` | Weekdays on which to pause. | `list(string)` | all days |
-| `scheduler.resume_days` | Weekdays on which to resume. | `list(string)` | all days |
+| `scheduler.resume_days` | Weekdays on which to resume. Ignored if `resume_time` is omitted. | `list(string)` | all days |
 | `usage_autostop` | Optional usage-based auto-pause. See [Usage-based Auto-pause](#-usage-based-auto-pause-autostop). | `object` | `null` |
 | `usage_autostop.check_interval_hours` | Poll frequency (1–24 hours). | `number` | `1` |
 | `usage_autostop.idle_threshold_checks` | Consecutive idle polls before suspending. | `number` | `2` |
@@ -350,9 +350,11 @@ When `scheduler` is configured, the `fabric_capacity` module provisions Azure re
 - 🤖 **Azure Automation Account** with a System-Assigned Managed Identity
 - 🔑 **Role Assignment** — `Contributor` access on the Fabric Capacity
 - 📜 **PowerShell 7.2 Runbook** ([`capacity_scheduler.ps1`](modules/fabric_capacity/scripts/capacity_scheduler.ps1)) — authenticates via Managed Identity and calls the Azure Management API
-- 📅 **Two weekly schedules** — one to pause, one to resume
+- 📅 **One or two weekly schedules** — a pause schedule always, plus a resume schedule only if `resume_time` is set
 
 > **Note:** The runbook is idempotent — it checks the current capacity state before acting and skips the API call if the capacity is already in the target state.
+
+> **Tip:** Omit `resume_time` to get a pause-only schedule — useful for a capacity you otherwise leave running, where you just want it automatically paused (e.g. overnight/weekends) to save cost. When you need it again, resume it manually (Azure Portal, CLI, or by running the `fabric-capacity-scheduler` runbook with `mode = "Resume"`); it stays running until the pause schedule fires again.
 
 ## 🛌 Usage-based Auto-pause (autostop)
 
