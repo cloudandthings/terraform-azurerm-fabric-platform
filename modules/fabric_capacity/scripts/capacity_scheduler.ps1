@@ -34,7 +34,29 @@ $ErrorActionPreference = "Stop"
 Write-Output "Authenticating with Managed Identity..."
 Connect-AzAccount -Identity | Out-Null
 
-$token   = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/" -AsSecureString:$false).Token
+# Get-AzAccessToken's return type depends on the installed Az.Accounts version:
+# Older versions return the token as plain text while newer versions return a
+# SecureString by default (only newer versions have -AsSecureString).
+# The following handles both without depending on a parameter that may not exist.
+function Get-PlainAccessToken {
+    param ([Parameter(Mandatory = $true)] [string] $ResourceUrl)
+
+    $token = (Get-AzAccessToken -ResourceUrl $ResourceUrl).Token
+
+    if ($token -is [System.Security.SecureString]) {
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($token)
+        try {
+            return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+        }
+        finally {
+            [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+        }
+    }
+
+    return $token
+}
+
+$token   = Get-PlainAccessToken -ResourceUrl "https://management.azure.com/"
 $headers = @{ Authorization = "Bearer $token"; "Content-Type" = "application/json" }
 
 $baseUrl    = "https://management.azure.com"

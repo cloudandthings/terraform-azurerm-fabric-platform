@@ -94,12 +94,34 @@ $ErrorActionPreference = "Stop"
 Write-Output "Authenticating with Managed Identity..."
 Connect-AzAccount -Identity | Out-Null
 
+# Get-AzAccessToken's return type depends on the installed Az.Accounts version:
+# Older versions return the token as plain text while newer versions return a
+# SecureString by default (only newer versions have -AsSecureString).
+# The following handles both without depending on a parameter that may not exist.
+function Get-PlainAccessToken {
+    param ([Parameter(Mandatory = $true)] [string] $ResourceUrl)
+
+    $token = (Get-AzAccessToken -ResourceUrl $ResourceUrl).Token
+
+    if ($token -is [System.Security.SecureString]) {
+        $bstr = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($token)
+        try {
+            return [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($bstr)
+        }
+        finally {
+            [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+        }
+    }
+
+    return $token
+}
+
 # ARM API token — capacity state check and suspend call
-$armToken   = (Get-AzAccessToken -ResourceUrl "https://management.azure.com/" -AsSecureString:$false).Token
+$armToken   = Get-PlainAccessToken -ResourceUrl "https://management.azure.com/"
 $armHeaders = @{ Authorization = "Bearer $armToken"; "Content-Type" = "application/json" }
 
 # Fabric REST API token — workspace and job instance queries
-$fabricToken   = (Get-AzAccessToken -ResourceUrl "https://api.fabric.microsoft.com/" -AsSecureString:$false).Token
+$fabricToken   = Get-PlainAccessToken -ResourceUrl "https://api.fabric.microsoft.com/"
 $fabricHeaders = @{ Authorization = "Bearer $fabricToken"; "Content-Type" = "application/json" }
 
 $armBaseUrl    = "https://management.azure.com"
