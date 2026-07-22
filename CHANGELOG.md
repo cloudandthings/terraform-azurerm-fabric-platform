@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/cloudandthings/terraform-azurerm-fabric-platform/compare/v1.1.0...v1.1.1) (2026-07-22)
+
+
+### Bug Fixes
+
+* resolve missing AsSecureString parameter ([#24](https://github.com/cloudandthings/terraform-azurerm-fabric-platform/issues/24)) ([d4c322c](https://github.com/cloudandthings/terraform-azurerm-fabric-platform/commit/d4c322c14b4af1f5f97ed2c271b51dd3a09369c5))
+
 ## [1.1.0](https://github.com/cloudandthings/terraform-azurerm-fabric-platform/compare/v1.0.1...v1.1.0) (2026-07-16)
 
 
